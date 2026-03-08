@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Guitar Chord Families</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Fira+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d0d10;color:#e8e6f0;font-family:'Playfair Display',serif;min-height:100vh;padding:36px 16px}
+.wrap{max-width:980px;margin:0 auto}
+.header{text-align:center;margin-bottom:40px}
+.eyebrow{font-family:'Fira Mono',monospace;font-size:11px;letter-spacing:5px;color:#444;text-transform:uppercase;margin-bottom:10px}
+h1{font-size:clamp(2rem,5vw,3.4rem);font-weight:700;background:linear-gradient(130deg,#f0a04b,#e85d75,#9b7fe8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sub{color:#444;font-size:13px;margin-top:8px;font-style:italic}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:28px}
+.tab{padding:8px 20px;border-radius:30px;border:1.5px solid #222;background:#111;color:#555;font-family:'Fira Mono',monospace;font-size:12px;cursor:pointer;transition:all .2s;letter-spacing:1px}
+.tab:hover{color:#ccc;border-color:#444}
+.tab.active{color:#111;font-weight:600;border-color:transparent}
+.info-box{background:#111;border:1px solid #1e1e2a;border-radius:14px;padding:16px 22px;margin-bottom:26px}
+.info-row{display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap}
+.dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.info-name{font-size:16px;font-weight:700}
+.info-desc{font-size:13px;color:#666;font-style:italic}
+.info-theory{font-family:'Fira Mono',monospace;font-size:11px;color:#555;line-height:1.8}
+.info-theory b{color:#888}
+.chord-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:14px;margin-bottom:32px}
+.chord-card{background:#111;border:1.5px solid #1e1e2a;border-radius:14px;padding:12px 8px 10px;cursor:pointer;text-align:center;transition:all .2s}
+.chord-card:hover{transform:translateY(-2px);border-color:#333}
+.chord-card.sel{transform:translateY(-3px)}
+.chord-title{font-family:'Fira Mono',monospace;font-size:12px;color:#666;margin-top:6px}
+.legend{background:#111;border:1px solid #1e1e2a;border-radius:12px;padding:14px 20px;display:flex;flex-wrap:wrap;gap:14px;justify-content:center;font-family:'Fira Mono',monospace;font-size:11px;color:#555}
+.legend b{color:#888}
+.fam-strip{margin-top:22px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.fam-pill{padding:7px 14px;border-radius:8px;background:#111;border:1px solid #1e1e2a;font-size:12px}
+.fam-pill .fn{font-weight:700}
+.fam-pill .fd{color:#444;margin-left:6px;font-style:italic;font-size:11px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="eyebrow">Guitar Reference</div>
+    <h1>Chord Families</h1>
+    <p class="sub">6 families · 36 essential shapes · accurate fretboard diagrams</p>
+  </div>
+  <div class="tabs" id="tabs"></div>
+  <div class="info-box" id="infoBox"></div>
+  <div class="chord-grid" id="chordGrid"></div>
+  <div class="legend">
+    <span>○ = <b>open string</b></span>
+    <span style="color:#e05566">✕ = <b>muted / skip</b></span>
+    <span><b>1</b>=index &nbsp;<b>2</b>=middle &nbsp;<b>3</b>=ring &nbsp;<b>4</b>=pinky</span>
+    <span>colored bar = <b>barre</b></span>
+    <span>left number = <b>starting fret</b></span>
+  </div>
+  <div class="fam-strip" id="famStrip"></div>
+</div>
+
+<script>
+/*
+  STRING NUMBERING: index 0 = string 6 (low E), index 5 = string 1 (high e)
+  open[i]: -1=muted, 0=open, N=fret played (N>0 means dot at that fret)
+  dots: [ [stringIndex 0-5, fret 1-based, fingerNumber], ... ]
+  barre: fret number (1-based), null if no barre
+  barreFrom/barreTo: string indices (0=low E, 5=high e) covered by barre
+*/
+const families = {
+  Major:{
+    color:"#f0a04b", desc:"Bright, happy, resolved",
+    theory:"Major triad: <b>root + major 3rd + perfect 5th (1–3–5)</b>. The foundation of Western music. Used in pop, country, folk, and rock.",
+    chords:[
+      { name:"C Major", key:"C",
+        open:  [-1, 3, 2, 0, 1, 0],
+        dots:  [[1,3,3],[2,2,2],[4,1,1]] },
+      // string idx: 0=lowE 1=A 2=D 3=G 4=B 5=highE
+      // C: A-string fret3(finger3), D-string fret2(finger2), B-string fret1(finger1)
+
+      { name:"G Major", key:"G",
+        open:  [3, 2, 0, 0, 0, 3],
+        dots:  [[0,3,2],[1,2,1],[5,3,3]] },
+
+      { name:"D Major", key:"D",
+        open:  [-1,-1, 0, 2, 3, 2],
+        dots:  [[3,2,1],[4,3,3],[5,2,2]] },
+
+      { name:"A Major", key:"A",
+        open:  [-1, 0, 2, 2, 2, 0],
+        dots:  [[2,2,1],[3,2,2],[4,2,3]] },
+
+      { name:"E Major", key:"E",
+        open:  [0, 2, 2, 1, 0, 0],
+        dots:  [[1,2,2],[2,2,3],[3,1,1]] },
+
+      { name:"F Major", key:"F",
+        open:  [1, 1, 2, 3, 3, 1],
+        dots:  [[1,3,3],[2,3,4],[3,2,2]],
+        barre:1, barreFrom:0, barreTo:5 },
+    ]
+  },
+
+  Minor:{
+    color:"#5b8fcf", desc:"Dark, emotional, melancholic",
+    theory:"Minor triad: <b>root + minor 3rd + perfect 5th (1–♭3–5)</b>. The flattened 3rd gives a darker tone. Core of blues, rock, and metal.",
+    chords:[
+      { name:"A Minor", key:"Am",
+        open:  [-1, 0, 2, 2, 1, 0],
+        dots:  [[2,2,2],[3,2,3],[4,1,1]] },
+
+      { name:"E Minor", key:"Em",
+        open:  [0, 2, 2, 0, 0, 0],
+        dots:  [[1,2,2],[2,2,3]] },
+
+      { name:"D Minor", key:"Dm",
+        open:  [-1,-1, 0, 2, 3, 1],
+        dots:  [[3,2,2],[4,3,3],[5,1,1]] },
+
+      { name:"B Minor", key:"Bm",
+        open:  [-1, 2, 4, 4, 3, 2],
+        dots:  [[2,4,3],[3,4,4],[4,3,2]],
+        barre:2, barreFrom:1, barreTo:5 },
+
+      { name:"C Minor", key:"Cm",
+        open:  [-1, 3, 5, 5, 4, 3],
+        dots:  [[2,5,3],[3,5,4],[4,4,2]],
+        barre:3, barreFrom:1, barreTo:5 },
+
+      { name:"G Minor", key:"Gm",
+        open:  [3, 5, 5, 3, 3, 3],
+        dots:  [[1,5,3],[2,5,4],[3,5,3]],
+        barre:3, barreFrom:0, barreTo:5 },
+    ]
+  },
+
+  Seventh:{
+    color:"#e85d75", desc:"Bluesy, dominant, tense",
+    theory:"Dominant 7th: <b>major triad + minor 7th (1–3–5–♭7)</b>. Creates tension that wants to resolve a perfect 4th up. Essential in blues, jazz, funk.",
+    chords:[
+      { name:"G7", key:"G7",
+        open:  [3, 2, 0, 0, 0, 1],
+        dots:  [[0,3,3],[1,2,2],[5,1,1]] },
+
+      { name:"C7", key:"C7",
+        open:  [-1, 3, 2, 3, 1, 0],
+        dots:  [[1,3,3],[2,2,2],[3,3,4],[4,1,1]] },
+
+      { name:"D7", key:"D7",
+        open:  [-1,-1, 0, 2, 1, 2],
+        dots:  [[3,2,2],[4,1,1],[5,2,3]] },
+
+      { name:"A7", key:"A7",
+        open:  [-1, 0, 2, 0, 2, 0],
+        dots:  [[2,2,2],[4,2,3]] },
+
+      { name:"E7", key:"E7",
+        open:  [0, 2, 0, 1, 0, 0],
+        dots:  [[1,2,2],[3,1,1]] },
+
+      { name:"B7", key:"B7",
+        open:  [-1, 2, 1, 2, 0, 2],
+        dots:  [[1,2,3],[2,1,1],[3,2,2],[5,2,4]] },
+    ]
+  },
+
+  Minor7:{
+    color:"#9b7fe8", desc:"Mellow, jazzy, soulful",
+    theory:"Minor 7th: <b>minor triad + minor 7th (1–♭3–5–♭7)</b>. Smooth and sophisticated. Cornerstone of jazz, neo-soul, and R&B harmony.",
+    chords:[
+      { name:"Am7", key:"Am7",
+        open:  [-1, 0, 2, 0, 1, 0],
+        dots:  [[2,2,2],[4,1,1]] },
+
+      { name:"Em7", key:"Em7",
+        open:  [0, 2, 2, 0, 3, 0],
+        dots:  [[1,2,2],[2,2,3],[4,3,4]] },
+
+      { name:"Dm7", key:"Dm7",
+        open:  [-1,-1, 0, 2, 1, 1],
+        dots:  [[3,2,3],[4,1,1],[5,1,2]] },
+
+      { name:"Bm7", key:"Bm7",
+        open:  [-1, 2, 4, 2, 3, 2],
+        dots:  [[2,4,3],[4,3,2]],
+        barre:2, barreFrom:1, barreTo:5 },
+
+      { name:"Fm7", key:"Fm7",
+        open:  [1, 1, 3, 1, 1, 1],
+        dots:  [[2,3,3],[3,3,4]],
+        barre:1, barreFrom:0, barreTo:5 },
+
+      { name:"Cm7", key:"Cm7",
+        open:  [-1, 3, 5, 3, 4, 3],
+        dots:  [[2,5,4],[4,4,2]],
+        barre:3, barreFrom:1, barreTo:5 },
+    ]
+  },
+
+  Suspended:{
+    color:"#3cbfa0", desc:"Open, airy, unresolved",
+    theory:"Sus chords replace the 3rd: <b>sus2 = 1–2–5, sus4 = 1–4–5</b>. Neither major nor minor — floating, ambiguous sound. Great for transitions.",
+    chords:[
+      { name:"Asus2", key:"Asus2",
+        open:  [-1, 0, 2, 2, 0, 0],
+        dots:  [[2,2,1],[3,2,2]] },
+
+      { name:"Dsus2", key:"Dsus2",
+        open:  [-1,-1, 0, 2, 3, 0],
+        dots:  [[3,2,1],[4,3,3]] },
+
+      { name:"Esus4", key:"Esus4",
+        open:  [0, 2, 2, 2, 0, 0],
+        dots:  [[1,2,1],[2,2,2],[3,2,3]] },
+
+      { name:"Asus4", key:"Asus4",
+        open:  [-1, 0, 2, 2, 3, 0],
+        dots:  [[2,2,1],[3,2,2],[4,3,3]] },
+
+      { name:"Dsus4", key:"Dsus4",
+        open:  [-1,-1, 0, 2, 3, 3],
+        dots:  [[3,2,1],[4,3,2],[5,3,3]] },
+
+      { name:"Gsus4", key:"Gsus4",
+        open:  [3, 3, 0, 0, 1, 3],
+        dots:  [[0,3,2],[1,3,3],[4,1,1],[5,3,4]] },
+    ]
+  },
+
+  Diminished:{
+    color:"#c97d4e", desc:"Tense, dark, unstable",
+    theory:"Diminished triad: <b>root + minor 3rd + diminished 5th (1–♭3–♭5)</b>. Maximum tension and dissonance. Used as passing chords in jazz and classical.",
+    chords:[
+      { name:"Bdim", key:"Bdim",
+        open:  [-1, 2, 3, 4, 3, 2],
+        dots:  [[1,2,1],[2,3,2],[3,4,4],[4,3,3]] },
+
+      { name:"Cdim", key:"Cdim",
+        open:  [-1, 3, 4, 5, 4, 3],
+        dots:  [[1,3,1],[2,4,2],[3,5,4],[4,4,3]] },
+
+      { name:"Ddim", key:"Ddim",
+        open:  [-1,-1, 0, 1, 3, 1],
+        dots:  [[3,1,1],[4,3,3],[5,1,2]] },
+
+      { name:"Edim", key:"Edim",
+        open:  [0, 1, 2, 3, 3, 0],
+        dots:  [[1,1,1],[2,2,2],[3,3,3],[4,3,4]] },
+
+      { name:"Fdim", key:"Fdim",
+        open:  [1, 2, 3, 4, 3,-1],
+        dots:  [[0,1,1],[1,2,2],[2,3,3],[3,4,4]] },
+
+      { name:"Adim", key:"Adim",
+        open:  [-1, 0, 1, 2, 1, 0],
+        dots:  [[2,1,1],[3,2,2],[4,1,3]] },
+    ]
+  }
+};
+
+// ── SVG DIAGRAM CONSTANTS ─────────────────────────────────────────────────
+const STRINGS = 6;
+const FRETS   = 5;
+const SW      = 28;   // horizontal spacing between strings
+const FH      = 28;   // vertical spacing between frets
+const PL      = 26;   // left padding  (fret number area)
+const PT      = 38;   // top padding   (mute/open circles)
+const PR      = 14;   // right padding
+const PB      = 4;    // bottom padding
+const DW      = PL + SW*(STRINGS-1) + PR;   // diagram width
+const DH      = PT + FH*FRETS + PB;         // diagram height
+const DOT_R   = 11;   // finger dot radius
+
+function buildDiagram(chord, color) {
+  const { open, dots, barre, barreFrom, barreTo } = chord;
+
+  // Compute fret offset (for chords up the neck)
+  const playedFrets = dots.map(d=>d[1]);
+  const minFret = playedFrets.length ? Math.min(...playedFrets) : 1;
+  const offset  = minFret > 1 ? minFret - 1 : 0;   // rows shift by this
+  const showNut = offset === 0;
+
+  let svg = `<svg width="${DW}" height="${DH}" viewBox="0 0 ${DW} ${DH}" xmlns="http://www.w3.org/2000/svg">`;
+
+  // String name labels
+  const labels = ["E","A","D","G","B","e"];
+  for (let i = 0; i < STRINGS; i++) {
+    const x = PL + i*SW;
+    svg += `<text x="${x}" y="${PT-24}" text-anchor="middle"
+              font-size="10" fill="#4a4a60" font-family="monospace">${labels[i]}</text>`;
+  }
+
+  // Position label (e.g. "3fr")
+  if (offset > 0) {
+    svg += `<text x="${PL-6}" y="${PT + FH*0.65}" text-anchor="end"
+              font-size="9" fill="#888" font-family="monospace">${offset+1}fr</text>`;
+  }
+
+  // Fret wires (horizontal lines)
+  for (let f = 0; f <= FRETS; f++) {
+    const y = PT + f*FH;
+    if (f === 0 && showNut) {
+      // Thick nut
+      svg += `<rect x="${PL-1}" y="${y-3}" width="${SW*(STRINGS-1)+2}" height="5" rx="2" fill="#888"/>`;
+    } else {
+      svg += `<line x1="${PL}" y1="${y}" x2="${PL+SW*(STRINGS-1)}" y2="${y}"
+                stroke="#252535" stroke-width="1"/>`;
+    }
+  }
+
+  // String wires (vertical lines)
+  for (let i = 0; i < STRINGS; i++) {
+    const x = PL + i*SW;
+    // vary thickness: low E thicker than high e
+    const thick = 1 + (STRINGS-1-i)*0.18;
+    svg += `<line x1="${x}" y1="${PT}" x2="${x}" y2="${PT + FH*FRETS}"
+              stroke="#252535" stroke-width="${thick.toFixed(2)}"/>`;
+  }
+
+  // Mute / open string markers (above nut)
+  for (let i = 0; i < STRINGS; i++) {
+    const val = open[i];
+    const cx  = PL + i*SW;
+    const cy  = PT - 12;
+    if (val === -1) {
+      // ✕ muted
+      const d = 5;
+      svg += `<line x1="${cx-d}" y1="${cy-d}" x2="${cx+d}" y2="${cy+d}" stroke="#e05566" stroke-width="1.8" stroke-linecap="round"/>`;
+      svg += `<line x1="${cx+d}" y1="${cy-d}" x2="${cx-d}" y2="${cy+d}" stroke="#e05566" stroke-width="1.8" stroke-linecap="round"/>`;
+    } else if (val === 0) {
+      // ○ open
+      svg += `<circle cx="${cx}" cy="${cy}" r="6" fill="none" stroke="#777" stroke-width="1.5"/>`;
+    }
+    // fretted strings: no symbol above nut
+  }
+
+  // Barre bar (draw before dots so dots appear on top)
+  if (barre !== undefined && barre !== null) {
+    const row = barre - offset;   // 1-based row index
+    if (row >= 1 && row <= FRETS) {
+      const x1 = PL + barreFrom*SW;
+      const x2 = PL + barreTo*SW;
+      const y  = PT + (row-1)*FH;
+      svg += `<rect x="${x1-DOT_R+2}" y="${y + FH/2 - DOT_R + 2}"
+                width="${x2-x1 + (DOT_R-2)*2}" height="${(DOT_R-2)*2}"
+                rx="${DOT_R-2}" fill="${color}" opacity="0.88"/>`;
+    }
+  }
+
+  // Finger dots
+  for (const [strIdx, fret, finger] of dots) {
+    const row = fret - offset;   // 1-based display row
+    if (row < 1 || row > FRETS) continue;
+    const cx = PL + strIdx*SW;
+    const cy = PT + (row-1)*FH + FH/2;
+    svg += `<circle cx="${cx}" cy="${cy}" r="${DOT_R}" fill="${color}"/>`;
+    svg += `<text x="${cx}" y="${cy+4}" text-anchor="middle"
+              font-size="10" fill="white" font-family="monospace" font-weight="bold">${finger}</text>`;
+  }
+
+  svg += `</svg>`;
+  return svg;
+}
+
+// ── STATE ─────────────────────────────────────────────────────────────────
+let curFamily = "Major";
+let selChord  = null;
+
+// ── RENDER ────────────────────────────────────────────────────────────────
+function render() {
+  const fam   = families[curFamily];
+  const color = fam.color;
+
+  // Tabs
+  document.getElementById("tabs").innerHTML = Object.keys(families).map(k => {
+    const v = families[k];
+    const active = k === curFamily;
+    return `<button class="tab${active?" active":""}" data-fam="${k}"
+      style="${active?`background:${v.color};color:#111;`:''}">
+      ${k}
+    </button>`;
+  }).join("");
+
+  // Info box
+  document.getElementById("infoBox").innerHTML = `
+    <div class="info-row">
+      <div class="dot" style="background:${color};box-shadow:0 0 10px ${color}aa"></div>
+      <span class="info-name" style="color:${color}">${curFamily} Chords</span>
+      <span class="info-desc">— ${fam.desc}</span>
+    </div>
+    <div class="info-theory">${fam.theory}</div>`;
+
+  // Chord grid
+  document.getElementById("chordGrid").innerHTML = fam.chords.map(c => {
+    const active = selChord === c.key;
+    return `<div class="chord-card${active?" sel":""}" data-key="${c.key}"
+      style="${active?`border-color:${color};box-shadow:0 0 22px ${color}33;background:#14141e;`:''}">
+      ${buildDiagram(c, color)}
+      <div class="chord-title">${c.name}</div>
+    </div>`;
+  }).join("");
+
+  // Family strip
+  document.getElementById("famStrip").innerHTML = Object.entries(families).map(([k,v]) =>
+    `<div class="fam-pill"><span class="fn" style="color:${v.color}">${k}</span><span class="fd">${v.desc}</span></div>`
+  ).join("");
+
+  // Event listeners
+  document.querySelectorAll(".tab").forEach(btn => {
+    btn.addEventListener("click", () => { curFamily = btn.dataset.fam; selChord = null; render(); });
+  });
+  document.querySelectorAll(".chord-card").forEach(card => {
+    card.addEventListener("click", () => {
+      selChord = selChord === card.dataset.key ? null : card.dataset.key;
+      render();
+    });
+  });
+}
+
+render();
+</script>
+</body>
+</html>
